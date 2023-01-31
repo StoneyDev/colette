@@ -2,16 +2,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/activity.dart';
+import '../../models/user.dart';
 
 part 'activity_infos_state.dart';
 
 class ActivityInfosCubit extends Cubit<ActivityInfosState> {
-  ActivityInfosCubit({required this.activity, required this.userId}) : super(ActivityUnsubscriber()) {
+  ActivityInfosCubit({required this.activity, required this.user}) : super(ActivityUnsubscriber()) {
     isInvolved();
   }
 
   final Activity activity;
-  final String userId;
+  final User user;
 
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
@@ -26,15 +27,15 @@ class ActivityInfosCubit extends Cubit<ActivityInfosState> {
       final List<String>? attendees = prefs.getStringList(activity.id);
 
       // Get user's activities
-      final List<String>? userActivities = prefs.getStringList('userActivities');
+      final List<String>? userActivities = prefs.getStringList('userActivities-${user.id}');
 
-      final List<String> newAttendees = <String>[...attendees ?? <String>[], userId];
+      final List<String> newAttendees = <String>[...attendees ?? <String>[], user.id];
 
       // Set the new attendee
       prefs.setStringList(activity.id, newAttendees);
 
       // Set user activities
-      prefs.setStringList('userActivities', <String>[...userActivities ?? <String>[], activity.id]);
+      prefs.setStringList('userActivities-${user.id}', <String>[...userActivities ?? <String>[], activity.id]);
 
       // Show snackabr
       emit(SubscribeSuccess());
@@ -58,7 +59,7 @@ class ActivityInfosCubit extends Cubit<ActivityInfosState> {
     // Get all attendees from this activity
     final List<String>? attendees = prefs.getStringList(activity.id);
 
-    if ((attendees ?? <String>[]).contains(userId)) {
+    if ((attendees ?? <String>[]).contains(user.id)) {
       emit(
         ActivitySubscriber(
           nbRegistrations: (attendees ?? []).length,
@@ -85,10 +86,10 @@ class ActivityInfosCubit extends Cubit<ActivityInfosState> {
       // Get all attendees from this activity
       final List<String>? attendees = prefs.getStringList(activity.id);
 
-      final List<String>? userActivities = prefs.getStringList('userActivities');
+      final List<String>? userActivities = prefs.getStringList('userActivities-${user.id}');
 
       // Remove attendee id
-      attendees!.removeWhere((String e) => e == userId);
+      attendees!.removeWhere((String e) => e == user.id);
 
       // Remove activity id
       userActivities!.removeWhere((String e) => e == activity.id);
@@ -97,7 +98,7 @@ class ActivityInfosCubit extends Cubit<ActivityInfosState> {
       prefs.setStringList(activity.id, attendees);
 
       // Remove activity id
-      prefs.setStringList('userActivities', userActivities);
+      prefs.setStringList('userActivities-${user.id}', userActivities);
 
       emit(UnsubscribeSuccess());
 

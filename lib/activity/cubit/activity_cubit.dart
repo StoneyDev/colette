@@ -3,15 +3,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/demos.dart';
 import '../../models/activity.dart';
+import '../../models/user.dart';
 
 part 'activity_state.dart';
 
 class ActivityCubit extends Cubit<ActivityState> {
-  ActivityCubit() : super(ActivityInitial()) {
+  ActivityCubit({required this.user}) : super(ActivityInitial()) {
     getActivities();
     getUserActivities();
   }
 
+  final User user;
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
   Future<void> getActivities() async {
@@ -42,7 +44,7 @@ class ActivityCubit extends Cubit<ActivityState> {
       final SharedPreferences prefs = await _prefs;
 
       // Get user's activities
-      final List<String>? userActivitiesResponse = prefs.getStringList('userActivities');
+      final List<String>? userActivitiesResponse = prefs.getStringList('userActivities-${user.id}');
 
       // Filter activities
       final List<Activity> userActivities = allActivities

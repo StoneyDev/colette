@@ -26,7 +26,7 @@ class _ActivityInfosState extends State<ActivityInfos> {
             return BlocProvider<ActivityInfosCubit>(
               create: (BuildContext context) => ActivityInfosCubit(
                 activity: widget.activity,
-                userId: (authState as AuthentificatedUser).user.id,
+                user: (authState as AuthentificatedUser).user,
               ),
               child: BlocConsumer<ActivityInfosCubit, ActivityInfosState>(
                 listener: (BuildContext context, ActivityInfosState state) {
@@ -60,6 +60,11 @@ class _ActivityInfosState extends State<ActivityInfos> {
                       child: ListView(
                         padding: const EdgeInsets.all(15),
                         children: <Widget>[
+                          // Description
+                          Text(widget.activity.description),
+
+                          const SizedBox(height: 15),
+
                           // Date
                           Row(
                             children: <Widget>[
