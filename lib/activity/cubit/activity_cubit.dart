@@ -1,14 +1,16 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../models/activity.dart';
+
 part 'activity_state.dart';
 
 class ActivityCubit extends Cubit<ActivityState> {
-  ActivityCubit({required this.activityId, required this.userId}) : super(ActivityUnsubscriber()) {
+  ActivityCubit({required this.activity, required this.userId}) : super(ActivityUnsubscriber()) {
     isInvolved();
   }
 
-  final String activityId;
+  final Activity activity;
   final String userId;
 
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
@@ -21,18 +23,23 @@ class ActivityCubit extends Cubit<ActivityState> {
       final SharedPreferences prefs = await _prefs;
 
       // Get all attendees from this activity
-      final List<String>? attendees = prefs.getStringList(activityId);
+      final List<String>? attendees = prefs.getStringList(activity.id);
 
       final List<String> newAttendees = <String>[...attendees ?? <String>[], userId];
 
       // Set the new attendee
-      prefs.setStringList(activityId, newAttendees);
+      prefs.setStringList(activity.id, newAttendees);
 
       // Show snackabr
       emit(SubscribeSuccess());
 
       // Change state button
-      emit(ActivitySubscriber(remainingPlaces: newAttendees.length));
+      emit(
+        ActivitySubscriber(
+          nbRegistrations: newAttendees.length,
+          remainingPlaces: activity.attendees - newAttendees.length,
+        ),
+      );
     } catch (e) {
       emit(ActivityFailed());
     }
@@ -43,12 +50,22 @@ class ActivityCubit extends Cubit<ActivityState> {
     final SharedPreferences prefs = await _prefs;
 
     // Get all attendees from this activity
-    final List<String>? attendees = prefs.getStringList(activityId);
+    final List<String>? attendees = prefs.getStringList(activity.id);
 
     if ((attendees ?? <String>[]).contains(userId)) {
-      emit(ActivitySubscriber(remainingPlaces: (attendees ?? []).length));
+      emit(
+        ActivitySubscriber(
+          nbRegistrations: (attendees ?? []).length,
+          remainingPlaces: activity.attendees - (attendees ?? []).length,
+        ),
+      );
     } else {
-      emit(ActivityUnsubscriber(remainingPlaces: (attendees ?? []).length));
+      emit(
+        ActivityUnsubscriber(
+          nbRegistrations: (attendees ?? []).length,
+          remainingPlaces: activity.attendees - (attendees ?? []).length,
+        ),
+      );
     }
   }
 
@@ -60,17 +77,22 @@ class ActivityCubit extends Cubit<ActivityState> {
       final SharedPreferences prefs = await _prefs;
 
       // Get all attendees from this activity
-      final List<String>? attendees = prefs.getStringList(activityId);
+      final List<String>? attendees = prefs.getStringList(activity.id);
 
       // Remove attendee id
       attendees!.removeWhere((String e) => e == userId);
 
       // Save new list
-      prefs.setStringList(activityId, attendees);
+      prefs.setStringList(activity.id, attendees);
 
       emit(UnsubscribeSuccess());
 
-      emit(ActivityUnsubscriber(remainingPlaces: attendees.length));
+      emit(
+        ActivityUnsubscriber(
+          nbRegistrations: attendees.length,
+          remainingPlaces: activity.attendees - attendees.length,
+        ),
+      );
     } catch (e) {
       emit(ActivityFailed());
     }
