@@ -1,100 +1,62 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/demos.dart';
 import '../../models/activity.dart';
 
 part 'activity_state.dart';
 
 class ActivityCubit extends Cubit<ActivityState> {
-  ActivityCubit({required this.activity, required this.userId}) : super(ActivityUnsubscriber()) {
-    isInvolved();
+  ActivityCubit() : super(ActivityInitial()) {
+    getActivities();
+    getUserActivities();
   }
-
-  final Activity activity;
-  final String userId;
 
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
-  Future<void> subscribe() async {
+  Future<void> getActivities() async {
+    emit(ActivityLoading());
+
     try {
-      emit(ActivityLoading());
+      final List<Activity> allActivities = Demos.activities();
+
+      emit(
+        ActivityLoaded(
+          allActivities: allActivities,
+        ),
+      );
+    } catch (_) {
+      emit(ActivityError());
+    }
+  }
+
+  Future<void> getUserActivities() async {
+    if (state is ActivityLoaded) {
+      // Get old state
+      final ActivityLoaded oldState = state as ActivityLoaded;
+
+      // Get activities
+      final List<Activity> allActivities = Demos.activities();
 
       // Init SharedPreferences
       final SharedPreferences prefs = await _prefs;
 
-      // Get all attendees from this activity
-      final List<String>? attendees = prefs.getStringList(activity.id);
+      // Get user's activities
+      final List<String>? userActivitiesResponse = prefs.getStringList('userActivities');
 
-      final List<String> newAttendees = <String>[...attendees ?? <String>[], userId];
-
-      // Set the new attendee
-      prefs.setStringList(activity.id, newAttendees);
-
-      // Show snackabr
-      emit(SubscribeSuccess());
-
-      // Change state button
-      emit(
-        ActivitySubscriber(
-          nbRegistrations: newAttendees.length,
-          remainingPlaces: activity.attendees - newAttendees.length,
-        ),
-      );
-    } catch (e) {
-      emit(ActivityFailed());
-    }
-  }
-
-  Future<void> isInvolved() async {
-    // Init SharedPreferences
-    final SharedPreferences prefs = await _prefs;
-
-    // Get all attendees from this activity
-    final List<String>? attendees = prefs.getStringList(activity.id);
-
-    if ((attendees ?? <String>[]).contains(userId)) {
-      emit(
-        ActivitySubscriber(
-          nbRegistrations: (attendees ?? []).length,
-          remainingPlaces: activity.attendees - (attendees ?? []).length,
-        ),
-      );
-    } else {
-      emit(
-        ActivityUnsubscriber(
-          nbRegistrations: (attendees ?? []).length,
-          remainingPlaces: activity.attendees - (attendees ?? []).length,
-        ),
-      );
-    }
-  }
-
-  Future<void> unsubscribe() async {
-    try {
-      emit(ActivityLoading());
-
-      // Init SharedPreferences
-      final SharedPreferences prefs = await _prefs;
-
-      // Get all attendees from this activity
-      final List<String>? attendees = prefs.getStringList(activity.id);
-
-      // Remove attendee id
-      attendees!.removeWhere((String e) => e == userId);
-
-      // Save new list
-      prefs.setStringList(activity.id, attendees);
-
-      emit(UnsubscribeSuccess());
+      // Filter activities
+      final List<Activity> userActivities = allActivities
+          .where(
+            (Activity activity) => (userActivitiesResponse ?? []).contains(activity.id),
+          )
+          .toList();
 
       emit(
-        ActivityUnsubscriber(
-          nbRegistrations: attendees.length,
-          remainingPlaces: activity.attendees - attendees.length,
+        ActivityLoaded(
+          allActivities: oldState.allActivities,
+          userActivities: userActivities,
         ),
       );
-    } catch (e) {
-      emit(ActivityFailed());
     }
   }
 }

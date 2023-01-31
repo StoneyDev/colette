@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/activity.dart';
 import '../user/cubit/user_cubit.dart';
 import 'cubit/activity_cubit.dart';
+import 'cubit/activity_infos_cubit.dart';
 
 class ActivityInfos extends StatefulWidget {
   const ActivityInfos({required this.activity, super.key});
@@ -20,99 +21,106 @@ class _ActivityInfosState extends State<ActivityInfos> {
   Widget build(BuildContext context) {
     return BlocBuilder<UserCubit, UserState>(
       builder: (BuildContext context, UserState authState) {
-        return BlocProvider<ActivityCubit>(
-          create: (BuildContext context) => ActivityCubit(
-            activity: widget.activity,
-            userId: (authState as AuthentificatedUser).user.id,
-          ),
-          child: BlocConsumer<ActivityCubit, ActivityState>(
-            listener: (BuildContext context, ActivityState state) {
-              if (state is SubscribeSuccess) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Super, votre participation a bien été prise en compte'),
-                  ),
-                );
-              } else if (state is UnsubscribeSuccess) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Votre désinscription a bien été prise en compte :('),
-                  ),
-                );
-              } else if (state is ActivityFailed) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Une erreur est survenue'),
-                  ),
-                );
-              }
-            },
-            builder: (BuildContext context, ActivityState state) {
-              return Scaffold(
-                appBar: AppBar(),
-                body: SafeArea(
-                  child: ListView(
-                    padding: const EdgeInsets.all(15),
-                    children: <Widget>[
-                      // Date
-                      Row(
-                        children: <Widget>[
-                          const Icon(Icons.calendar_month),
-                          const SizedBox(width: 10),
-                          Text(DateFormat('dd/MM/y à HH:mm').format(widget.activity.startDate))
-                        ],
+        return BlocBuilder<ActivityCubit, ActivityState>(
+          builder: (BuildContext accontext, ActivityState state) {
+            return BlocProvider<ActivityInfosCubit>(
+              create: (BuildContext context) => ActivityInfosCubit(
+                activity: widget.activity,
+                userId: (authState as AuthentificatedUser).user.id,
+              ),
+              child: BlocConsumer<ActivityInfosCubit, ActivityInfosState>(
+                listener: (BuildContext context, ActivityInfosState state) {
+                  if (state is SubscribeSuccess) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Super, votre participation a bien été prise en compte'),
                       ),
+                    );
+                    accontext.read<ActivityCubit>().getUserActivities();
+                  } else if (state is UnsubscribeSuccess) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Votre désinscription a bien été prise en compte :('),
+                      ),
+                    );
 
-                      const SizedBox(height: 15),
-
-                      // Attendees
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    accontext.read<ActivityCubit>().getUserActivities();
+                  } else if (state is ActivityFailed) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Une erreur est survenue'),
+                      ),
+                    );
+                  }
+                },
+                builder: (BuildContext context, ActivityInfosState state) {
+                  return Scaffold(
+                    appBar: AppBar(),
+                    body: SafeArea(
+                      child: ListView(
+                        padding: const EdgeInsets.all(15),
                         children: <Widget>[
-                          const Icon(Icons.group),
-                          const SizedBox(width: 10),
-                          Column(
+                          // Date
+                          Row(
+                            children: <Widget>[
+                              const Icon(Icons.calendar_month),
+                              const SizedBox(width: 10),
+                              Text(DateFormat('dd/MM/y à HH:mm').format(widget.activity.startDate))
+                            ],
+                          ),
+
+                          const SizedBox(height: 15),
+
+                          // Attendees
+                          Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Text('${widget.activity.attendees} participants'),
-                              const SizedBox(height: 5),
-                              Text(
-                                '${state.remainingPlaces} places restantes',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Colors.black45,
-                                    ),
-                              ),
+                              const Icon(Icons.group),
+                              const SizedBox(width: 10),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text('${widget.activity.attendees} participants'),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    '${state.remainingPlaces} places restantes',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: Colors.black45,
+                                        ),
+                                  ),
+                                ],
+                              )
                             ],
-                          )
+                          ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-                bottomSheet: Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 15),
-                        child: ElevatedButton(
-                          onPressed: state.remainingPlaces == 0 && state is ActivityUnsubscriber
-                              ? null
-                              : () async {
-                                  final ActivityCubit activityCubit = context.read<ActivityCubit>();
+                    ),
+                    bottomSheet: Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 15),
+                            child: ElevatedButton(
+                              onPressed: state.remainingPlaces == 0 && state is ActivityUnsubscriber
+                                  ? null
+                                  : () async {
+                                      final ActivityInfosCubit activityCubit = context.read<ActivityInfosCubit>();
 
-                                  state is ActivityUnsubscriber
-                                      ? activityCubit.subscribe()
-                                      : activityCubit.unsubscribe();
-                                },
-                          child: Text(state is ActivityUnsubscriber ? "S'inscrire" : 'Se désinscrire'),
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-              );
-            },
-          ),
+                                      state is ActivityUnsubscriber
+                                          ? activityCubit.subscribe()
+                                          : activityCubit.unsubscribe();
+                                    },
+                              child: Text(state is ActivityUnsubscriber ? "S'inscrire" : 'Se désinscrire'),
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                  );
+                },
+              ),
+            );
+          },
         );
       },
     );

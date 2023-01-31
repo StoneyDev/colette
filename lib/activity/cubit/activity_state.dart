@@ -1,24 +1,19 @@
 part of 'activity_cubit.dart';
 
-abstract class ActivityState {
-  ActivityState({this.nbRegistrations = 0, this.remainingPlaces = 0});
+abstract class ActivityState {}
 
-  final int nbRegistrations;
-  final int remainingPlaces;
-}
+class ActivityInitial extends ActivityState {}
 
 class ActivityLoading extends ActivityState {}
 
-class ActivitySubscriber extends ActivityState {
-  ActivitySubscriber({super.nbRegistrations, super.remainingPlaces});
+class ActivityLoaded extends ActivityState {
+  ActivityLoaded({
+    this.allActivities = const <Activity>[],
+    this.userActivities = const <Activity>[],
+  });
+
+  final List<Activity> allActivities;
+  final List<Activity> userActivities;
 }
 
-class ActivityUnsubscriber extends ActivityState {
-  ActivityUnsubscriber({super.nbRegistrations, super.remainingPlaces});
-}
-
-class SubscribeSuccess extends ActivityState {}
-
-class UnsubscribeSuccess extends ActivityState {}
-
-class ActivityFailed extends ActivityState {}
+class ActivityError extends ActivityState {}
